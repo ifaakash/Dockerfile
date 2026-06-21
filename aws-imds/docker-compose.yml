@@ -1,0 +1,11 @@
+services:
+  idms:
+    build:
+     context: .
+     dockerfile: Dockerfile
+    container_name: aws-idms-verifier
+    environment:
+     AWS_PROFILE: "p41"
+    volumes:
+     - ${HOME}/.aws:/root/.aws:ro
+     - .:/app
