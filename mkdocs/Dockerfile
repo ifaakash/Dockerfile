@@ -2,7 +2,8 @@ FROM python:3.12-slim AS base
 
 WORKDIR /mkdocs
 
-COPY requirements.txt meridian/ ./
+COPY requirements.txt ./
+COPY meridian/ ./
 
 RUN pip install --no-cache-dir -r requirements.txt && \
   mkdocs build 
@@ -16,8 +17,6 @@ RUN pip install --no-cache-dir -r requirements.txt && \
 # can move to alpine upon checking if everything is working as expected
 FROM nginx
 
-WORKDIR /meridian
-
-COPY --from=base mkdocs/site/  /usr/share/nginx/html/
+COPY --from=base /mkdocs/site/  /usr/share/nginx/html/
 
 EXPOSE 80
