@@ -1,1 +1,43 @@
 name: Meridian Docs
+
+on:
+ push:
+   branches:
+     - main
+
+env:
+  REPOSITORY_URL: "http://<my-server-two-url>:5000"
+  EXISTING_CONTAINER: "meridian"
+
+# echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
+
+jobs:
+  build-and-push:
+    runs-on: self-hosted
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Set image tags
+        id: tags
+        run: |
+          echo "COMMIT_SHA_TAG=${{ github.sha }}" >> "$GITHUB_ENV"
+        
+      - name: Build the image
+        run: |
+           echo "OUTPUT_IMAGE_TAG=meridian-$COMMIT_SHA_TAG"
+           # docker build -t "${REPOSITORY_URL}/meridian-${{ steps.tags.outputs.COMMIT_SHA_TAG }}" ./
+           docker build -t "${REPOSITORY_URL}/$OUTPUT_IMAGE_TAG" ./
+           docker push "$REPOSITORY_URL/${OUTPUT_IMAGE_TAG}"
+
+    deploy:
+      runs-on: self-hosted
+      steps:
+        - name: Checkout code
+          uses: actions/checkout@v5
+
+        - name: Stop the existing containers
+          run: |
+            docker rm $(docker stop $EXISTING_CONTAINER)
+            docker pull ${OUTPUT_IMAGE_TAG}
+            docker run -d -p 80:80 $OUTPUT_IMAGE_TAG --name=${EXISTING_CONTAINER}
