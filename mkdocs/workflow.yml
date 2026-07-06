@@ -6,14 +6,18 @@ on:
      - main
 
 env:
-  REPOSITORY_URL: "http://<my-server-two-url>:5000"
+  SERVER_IP: ""
+  SERVER_USER: "" # server IP and user can be stored in github vars
+  REPOSITORY_URL: "<my-server-two-url>:5000"
   EXISTING_CONTAINER: "meridian"
 
 # echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
 
 jobs:
-  build-and-push:
+   build-and-push:
     runs-on: self-hosted
+    outputs:
+      image_tag: ${{ steps.output-tag.OUTPUT_IMAGE_TAG }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
@@ -22,22 +26,26 @@ jobs:
         id: tags
         run: |
           echo "COMMIT_SHA_TAG=${{ github.sha }}" >> "$GITHUB_ENV"
-        
+
       - name: Build the image
+        id: output-tag
         run: |
-           echo "OUTPUT_IMAGE_TAG=meridian-$COMMIT_SHA_TAG"
+           echo "OUTPUT_IMAGE_TAG=meridian:$COMMIT_SHA_TAG" >> "$GITHUB_OUTPUT"
            # docker build -t "${REPOSITORY_URL}/meridian-${{ steps.tags.outputs.COMMIT_SHA_TAG }}" ./
            docker build -t "${REPOSITORY_URL}/$OUTPUT_IMAGE_TAG" ./
            docker push "$REPOSITORY_URL/${OUTPUT_IMAGE_TAG}"
 
     deploy:
       runs-on: self-hosted
+      needs: [build-and-push]
+      env:
+        SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY  }}
       steps:
-        - name: Checkout code
-          uses: actions/checkout@v5
-
-        - name: Stop the existing containers
+        - name: SSH to website server and start new container
           run: |
-            docker rm $(docker stop $EXISTING_CONTAINER)
-            docker pull ${OUTPUT_IMAGE_TAG}
-            docker run -d -p 80:80 $OUTPUT_IMAGE_TAG --name=${EXISTING_CONTAINER}
+            # mkdir -p ~/.ssh
+            # echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+            # chmod 600 ~/.ssh/id_rsa
+            ssh -o StrictHostKeyChecking=no "$SERVER_USER@$SERVER_IP" "hostname" "docker rm $(docker stop $EXISTING_CONTAINER) || true && \
+            docker pull "${REPOSITORY_URL}/${{ needs.build-and-push.outputs.OUTPUT_IMAGE_TAG }}" && \
+            docker run -d -p 80:80 --name=${EXISTING_CONTAINER} $OUTPUT_IMAGE_TAG"
