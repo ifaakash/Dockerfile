@@ -17,7 +17,7 @@ jobs:
    build-and-push:
     runs-on: self-hosted
     outputs:
-      image_tag: ${{ steps.output-tag.OUTPUT_IMAGE_TAG }}
+      image_tag: ${{ steps.output-tag.outputs.image_tag }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
@@ -30,10 +30,11 @@ jobs:
       - name: Build the image
         id: output-tag
         run: |
-           echo "OUTPUT_IMAGE_TAG=meridian:$COMMIT_SHA_TAG" >> "$GITHUB_OUTPUT"
+           IMAGE= "${REPOSITORY_URL}/meridian:${{ github.sha }}"
            # docker build -t "${REPOSITORY_URL}/meridian-${{ steps.tags.outputs.COMMIT_SHA_TAG }}" ./
-           docker build -t "${REPOSITORY_URL}/$OUTPUT_IMAGE_TAG" ./
-           docker push "$REPOSITORY_URL/${OUTPUT_IMAGE_TAG}"
+           docker build -t "$IMAGE" ./
+           docker push "$IMAGE"
+           echo "image_tag=$IMAGE" >> "$GITHUB_OUTPUT"
 
     deploy:
       runs-on: self-hosted
@@ -43,9 +44,21 @@ jobs:
       steps:
         - name: SSH to website server and start new container
           run: |
-            # mkdir -p ~/.ssh
-            # echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
-            # chmod 600 ~/.ssh/id_rsa
-            ssh -o StrictHostKeyChecking=no "$SERVER_USER@$SERVER_IP" "hostname" "docker rm $(docker stop $EXISTING_CONTAINER) || true && \
-            docker pull "${REPOSITORY_URL}/${{ needs.build-and-push.outputs.OUTPUT_IMAGE_TAG }}" && \
-            docker run -d -p 80:80 --name=${EXISTING_CONTAINER} $OUTPUT_IMAGE_TAG"
+            # Set up the SSH key securely
+            mkdir -p ~/.ssh
+            echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+            chmod 600 ~/.ssh/id_rsa
+            
+            # Using an unquoted EOF allows variables like $SERVER_USER to be evaluated 
+            # by the GitHub runner BEFORE sending the script to the remote server.
+            ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no "$SERVER_USER@$SERVER_IP" << EOF
+              echo "Connected to \$(hostname)"
+              
+              # Safely stop and remove the container if it exists
+              docker rm -f $EXISTING_CONTAINER || true
+              
+              # Pull and run the new image
+              docker pull $REPOSITORY_URL/${{ needs.build-and-push.outputs.image_tag }}
+              docker run -d -p 80:80 --name=$EXISTING_CONTAINER $REPOSITORY_URL/${{ needs.build-and-push.outputs.image_tag }}
+              rm -f ~/.ssh/id_rsa
+            EOF
