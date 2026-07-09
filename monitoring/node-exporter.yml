@@ -1,0 +1,17 @@
+services:
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: node-exporter
+    ports:
+      - "9100:9100"
+    volumes:
+      - ./:/prom-file:rw
+    command:
+          - '--collector.disable-defaults'
+          - '--collector.meminfo'   # Gets your RAM metrics
+          - '--collector.cpu'       # Gets your CPU metrics
+          - '--collector.loadavg'   # Gets system load averages
+          - '--collector.stat'      # Gets basic system stats (boot time, etc.)
+          - '--collector.filesystem'
+          - '--collector.textfile'
+          - '--collector.textfile.directory=/prom-file'

@@ -1,0 +1,6 @@
+# TYPE pi5_custom_temperature_celsius gauge
+pi5_custom_temperature_celsius 700
+
+# HELP pi5_custom_ram_used_bytes Pi 5 RAM Used
+# TYPE pi5_custom_ram_used_bytes gauge
+pi5_custom_ram_used_bytes 180
