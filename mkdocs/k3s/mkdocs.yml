@@ -3,7 +3,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  kind: Deployment
+  type: Deployment
   app: mkdocs
 spec:
   replicas: 2
@@ -12,7 +12,7 @@ spec:
   template:
     metadata:
       pod: mkdocs
-      kind: Pod
+      type: Pod
     spec:
       containers:
         - name: mkdocs
@@ -25,9 +25,9 @@ apiVersion: v1
 kind: Service
 metadata:
   name: mkdocs-svc
-  label:
+  labels:
     app: mkdocs
-    kind: Service
+    type: Service
 spec:
   # type: ClusterIP
   type: NodePort
