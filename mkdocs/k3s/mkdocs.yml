@@ -1,0 +1,39 @@
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  kind: Deployment
+  app: mkdocs
+spec:
+  replicas: 2
+  selector:
+    pod: mkdocs
+  template:
+    metadata:
+      pod: mkdocs
+      kind: Pod
+    spec:
+      containers:
+        - name: mkdocs
+          image: localhost:8000/mkdocs
+          ports:
+            - containerPort: 80 # container is listening for incoming traffic on prot 80
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: mkdocs-svc
+  label:
+    app: mkdocs
+    kind: Service
+spec:
+  # type: ClusterIP
+  type: NodePort
+  selector:
+    pod: mkdocs
+  ports:
+    - port: 80 # port exposed by service
+      targetPort: 80 # port on which container is listening
+      nodePort: 30008
