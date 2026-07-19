@@ -3,13 +3,12 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  type: Deployment
+  name: mkdocs-deployment
   labels:
     app: mkdocs
 spec:
   replicas: 2
   selector:
-    pod: mkdocs
     matchLabels:
       pod: mkdocs
   template:
@@ -19,7 +18,7 @@ spec:
     spec:
       containers:
         - name: mkdocs
-          image: <vm-pvt-ip>:5000/mkdocs:<github-sha>
+          image: localhost:5000/meridian:latest
           ports:
             - containerPort: 80 # container is listening for incoming traffic on prot 80
           livenessProbe:
