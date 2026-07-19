@@ -19,6 +19,21 @@ spec:
           image: localhost:8000/mkdocs
           ports:
             - containerPort: 80 # container is listening for incoming traffic on prot 80
+    livenessProbe:
+      httpGet:
+        path: /
+        port: 80
+      initialDelaySeconds: 5
+      periodSeconds: 10
+      failureThreshold: 3
+    readinessProbe:
+      httpGet:
+        path: /
+        port: 80
+      initialDelaySeconds: 5
+      periodSeconds: 5
+      successThreshold: 1
+      
 ---
 
 apiVersion: v1
